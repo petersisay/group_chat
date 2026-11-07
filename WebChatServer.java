@@ -22,12 +22,22 @@ public class WebChatServer implements Runnable {
     private final Set<WebSocketSession> activeSessions = ConcurrentHashMap.newKeySet();
     private final Map<WebSocketSession, String> userNames = new ConcurrentHashMap<>();
 
+    public static int getWebPort() {
+        String envPort = System.getenv("PORT");
+        if (envPort != null && !envPort.trim().isEmpty()) {
+            try {
+                return Integer.parseInt(envPort.trim());
+            } catch (NumberFormatException ignored) {}
+        }
+        return WEB_PORT;
+    }
+
     public WebChatServer(int port) {
         this.port = port;
     }
 
     public WebChatServer() {
-        this(WEB_PORT);
+        this(getWebPort());
     }
 
     public void start() {
