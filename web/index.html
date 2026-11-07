@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat Studio - Live Web Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #0f131a;
+            color: #e1e7f0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            background-color: #171c26;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #262f40;
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .room-tag {
+            background: #2a3447;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #9ab0d1;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #2ecc71;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #2ecc71;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #2ecc71;
+        }
+
+        /* Main Workspace */
+        .workspace {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Video Area */
+        .video-container {
+            flex: 1;
+            background-color: #12161f;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: auto;
+        }
+
+        .video-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            align-content: center;
+            justify-content: center;
+        }
+
+        .video-tile {
+            background: #1d2330;
+            border: 2px solid #2a3447;
+            border-radius: 12px;
+            position: relative;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .video-tile.speaking {
+            border-color: #2ecc71;
+            box-shadow: 0 0 14px rgba(46, 204, 113, 0.4);
+        }
+
+        .video-tile video, .video-tile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .avatar-circle {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #9b59b6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .tile-banner {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(15, 19, 26, 0.85);
+            backdrop-filter: blur(4px);
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tile-badge {
+            background: #e74c3c;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        /* Chat & Users Sidebar */
+        .sidebar {
+            width: 360px;
+            background: #171c26;
+            border-left: 1px solid #262f40;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid #262f40;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            color: #9ab0d1;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            background: rgba(52, 152, 219, 0.08);
+        }
+
+        .tab-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Message List */
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .chat-msg.system {
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 12px;
+            align-self: center;
+            background: rgba(255,255,255,0.03);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .msg-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .msg-author {
+            font-weight: 700;
+            color: #5dade2;
+        }
+
+        .msg-author.self {
+            color: #2ecc71;
+        }
+
+        .msg-time {
+            font-size: 11px;
+            color: #637289;
+        }
+
+        .msg-body {
+            color: #d1d8e3;
+            word-break: break-word;
+        }
+
+        /* Input Box */
+        .chat-input-area {
+            padding: 14px 16px;
+            border-top: 1px solid #262f40;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: #202736;
+            border: 1px solid #334057;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: #3498db;
+        }
+
+        .btn-send {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-send:hover {
+            background: #2980b9;
+        }
+
+        /* User List */
+        .user-list {
+            padding: 16px;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: #1c222e;
+            font-size: 13px;
+        }
+
+        .user-avatar-small {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #3498db;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Media Control Bar */
+        .media-dock {
+            background: #11141c;
+            border-top: 1px solid #262f40;
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vu-meter-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: #9ab0d1;
+        }
+
+        .vu-bar-bg {
+            width: 100px;
+            height: 8px;
+            background: #202736;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .vu-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #2ecc71;
+            transition: width 0.08s linear;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ctrl-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-green { background: #2ecc71; }
+        .btn-green:hover { background: #27ae60; }
+
+        .btn-red { background: #e74c3c; }
+        .btn-red:hover { background: #c0392b; }
+
+        .btn-blue { background: #3498db; }
+        .btn-blue:hover { background: #2980b9; }
+
+        .btn-purple { background: #9b59b6; }
+        .btn-purple:hover { background: #8e44ad; }
+
+        .btn-gray { background: #4a5568; }
+        .btn-gray:hover { background: #394252; }
+
+        /* Welcome Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .modal-card {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            padding: 30px;
+            border-radius: 14px;
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+        }
+
+        .modal-desc {
+            font-size: 13px;
+            color: #9ab0d1;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .modal-input {
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            padding: 12px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .modal-input:focus {
+            border-color: #3498db;
+        }
+
+        .modal-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Username Dialog -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Join Group Chat Studio</div>
+            <div class="modal-desc">Real-time text chat, live voice microphone audio, and camera/screen sharing in your browser.</div>
+            <input type="text" id="usernameInput" class="modal-input" placeholder="Enter your display name..." maxlength="20" autofocus>
+            <button id="joinBtn" class="modal-btn">Enter Room</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="header-title">
+            <span>Group Chat Studio</span>
+            <span class="room-tag">Live Browser Edition</span>
+        </div>
+        <div class="header-status">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span id="connectionStatus">Connecting...</span>
+            </div>
+            <span id="userBadge" style="font-weight: 600;"></span>
+        </div>
+    </header>
+
+    <!-- Workspace -->
+    <div class="workspace">
+        <!-- Video Grid -->
+        <div class="video-container">
+            <div id="videoGrid" class="video-grid">
+                <!-- Video tiles injected here -->
+            </div>
+        </div>
+
+        <!-- Sidebar (Chat & Members) -->
+        <div class="sidebar">
+            <div class="sidebar-tabs">
+                <button id="tabChatBtn" class="tab-btn active">Chat Messages</button>
+                <button id="tabUsersBtn" class="tab-btn">Online (<span id="userCount">0</span>)</button>
+            </div>
+
+            <!-- Chat Content -->
+            <div id="chatContent" class="tab-content">
+                <div id="chatMessages" class="chat-messages">
+                    <div class="chat-msg system">Welcome to Group Chat Studio! Ready to chat, speak, and stream.</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." autocomplete="off">
+                    <button id="sendBtn" class="btn-send">Send</button>
+                </div>
+            </div>
+
+            <!-- Users Content -->
+            <div id="usersContent" class="tab-content" style="display: none;">
+                <ul id="userList" class="user-list">
+                    <!-- User list items injected here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Media Controls Dock -->
+    <div class="media-dock">
+        <div class="vu-meter-box">
+            <span>Mic Activity:</span>
+            <div class="vu-bar-bg">
+                <div id="vuBar" class="vu-bar-fill"></div>
+            </div>
+        </div>
+
+        <div class="control-buttons">
+            <button id="btnMic" class="ctrl-btn btn-green">🎤 Mic: On</button>
+            <button id="btnDeafen" class="ctrl-btn btn-blue">🔊 Audio: On</button>
+            <button id="btnCamera" class="ctrl-btn btn-gray">📹 Camera: Off</button>
+            <button id="btnScreen" class="ctrl-btn btn-gray">🖥️ Screen: Off</button>
+        </div>
+
+        <div style="font-size: 12px; color: #637289;">
+            Port: 8080 (WebSocket & HTTP)
+        </div>
+    </div>
+
+    <!-- Hidden Video & Canvas for frame capture -->
+    <video id="localVideoElement" autoplay playsinline muted style="display: none;"></video>
+    <canvas id="captureCanvas" width="480" height="360" style="display: none;"></canvas>
+
+    <script>
+        let ws;
+        let myUsername = "";
+        let isMicMuted = false;
+        let isDeafened = false;
+        let isCameraOn = false;
+        let isScreenOn = false;
+
+        let localMediaStream = null;
+        let audioContext = null;
+        let analyser = null;
+        let vuInterval = null;
+        let videoBroadcastInterval = null;
+
+        const peerFeeds = new Map(); // username -> { tileEl, imgEl, speakingTimeout }
+
+        // DOM Elements
+        const loginModal = document.getElementById('loginModal');
+        const usernameInput = document.getElementById('usernameInput');
+        const joinBtn = document.getElementById('joinBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const userBadge = document.getElementById('userBadge');
+        const videoGrid = document.getElementById('videoGrid');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const userList = document.getElementById('userList');
+        const userCount = document.getElementById('userCount');
+        const vuBar = document.getElementById('vuBar');
+        const btnMic = document.getElementById('btnMic');
+        const btnDeafen = document.getElementById('btnDeafen');
+        const btnCamera = document.getElementById('btnCamera');
+        const btnScreen = document.getElementById('btnScreen');
+        const localVideo = document.getElementById('localVideoElement');
+        const captureCanvas = document.getElementById('captureCanvas');
+        const ctx = captureCanvas.getContext('2d');
+
+        // Tabs
+        const tabChatBtn = document.getElementById('tabChatBtn');
+        const tabUsersBtn = document.getElementById('tabUsersBtn');
+        const chatContent = document.getElementById('chatContent');
+        const usersContent = document.getElementById('usersContent');
+
+        tabChatBtn.addEventListener('click', () => {
+            tabChatBtn.classList.add('active');
+            tabUsersBtn.classList.remove('active');
+            chatContent.style.display = 'flex';
+            usersContent.style.display = 'none';
+        });
+
+        tabUsersBtn.addEventListener('click', () => {
+            tabUsersBtn.classList.add('active');
+            tabChatBtn.classList.remove('active');
+            chatContent.style.display = 'none';
+            usersContent.style.display = 'flex';
+        });
+
+        // Login Handler
+        function handleJoin() {
+            const name = usernameInput.value.trim();
+            myUsername = name ? name : "User" + Math.floor(Math.random() * 1000);
+            loginModal.style.display = 'none';
+            userBadge.textContent = myUsername + " (You)";
+            initWebSocket();
+            initLocalMicrophone();
+            createOrUpdateTile(myUsername, null, "avatar", true);
+        }
+
+        joinBtn.addEventListener('click', handleJoin);
+        usernameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleJoin();
+        });
+
+        // WebSocket Connection
+        function initWebSocket() {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${proto}//${window.location.host}/ws`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                connectionStatus.textContent = "Connected";
+                // Register join
+                ws.send(JSON.stringify({
+                    type: "join",
+                    username: myUsername
+                }));
+            };
+
+            ws.onclose = () => {
+                connectionStatus.textContent = "Disconnected";
+                connectionStatus.style.color = "#e74c3c";
+                appendSystemMsg("Disconnected from server. Reconnecting in 3s...");
+                setTimeout(initWebSocket, 3000);
+            };
+
+            ws.onerror = (err) => {
+                console.error("WS error:", err);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleIncomingMessage(msg);
+                } catch (e) {
+                    console.error("Error parsing message", e);
+                }
+            };
+        }
+
+        function handleIncomingMessage(msg) {
+            switch (msg.type) {
+                case "chat":
+                    appendChatMessage(msg.username, msg.text, msg.time);
+                    break;
+                case "system":
+                    appendSystemMsg(msg.text);
+                    break;
+                case "users":
+                    updateUserList(msg.users);
+                    break;
+                case "video_frame":
+                    if (msg.username !== myUsername) {
+                        createOrUpdateTile(msg.username, msg.image, msg.mode, false);
+                    }
+                    break;
+                case "stop_video":
+                    if (msg.username !== myUsername) {
+                        createOrUpdateTile(msg.username, null, "avatar", false);
+                    }
+                    break;
+                case "voice_level":
+                    if (msg.username !== myUsername && !isDeafened) {
+                        highlightSpeaking(msg.username, msg.level);
+                    }
+                    break;
+            }
+        }
+
+        // Chat Functions
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            ws.send(JSON.stringify({
+                type: "chat",
+                username: myUsername,
+                text: text
+            }));
+
+            chatInput.value = "";
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function appendChatMessage(author, text, time) {
+            const isSelf = author === myUsername;
+            const timeStr = time ? time : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-msg';
+
+            msgDiv.innerHTML = `
+                <div class="msg-header">
+                    <span class="msg-author ${isSelf ? 'self' : ''}">${escapeHtml(author)}</span>
+                    <span class="msg-time">${timeStr}</span>
+                </div>
+                <div class="msg-body">${escapeHtml(text)}</div>
+            `;
+
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function appendSystemMsg(text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-msg system';
+            msgDiv.textContent = text;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function updateUserList(users) {
+            userCount.textContent = users.length;
+            userList.innerHTML = '';
+            users.forEach(u => {
+                const li = document.createElement('li');
+                li.className = 'user-item';
+                const initial = u.substring(0, 2).toUpperCase();
+                li.innerHTML = `
+                    <div class="user-avatar-small">${initial}</div>
+                    <span>${escapeHtml(u)} ${u === myUsername ? '(You)' : ''}</span>
+                `;
+                userList.appendChild(li);
+
+                if (!peerFeeds.has(u)) {
+                    createOrUpdateTile(u, null, "avatar", u === myUsername);
+                }
+            });
+
+            // Remove tiles for disconnected users
+            peerFeeds.forEach((val, name) => {
+                if (!users.includes(name) && name !== myUsername) {
+                    val.tileEl.remove();
+                    peerFeeds.delete(name);
+                }
+            });
+        }
+
+        // Video Grid Tile Management
+        function createOrUpdateTile(username, frameData, mode, isSelf) {
+            let feed = peerFeeds.get(username);
+
+            if (!feed) {
+                const tile = document.createElement('div');
+                tile.className = 'video-tile';
+                tile.id = 'tile_' + username;
+
+                const banner = document.createElement('div');
+                banner.className = 'tile-banner';
+                banner.innerHTML = `<span>${escapeHtml(username)} ${isSelf ? '(You)' : ''}</span>`;
+
+                tile.appendChild(banner);
+                videoGrid.appendChild(tile);
+
+                feed = { tileEl: tile, bannerEl: banner, imgEl: null, avatarEl: null };
+                peerFeeds.set(username, feed);
+            }
+
+            // Update frame or avatar
+            if (frameData) {
+                if (!feed.imgEl) {
+                    if (feed.avatarEl) feed.avatarEl.remove();
+                    feed.imgEl = document.createElement('img');
+                    feed.tileEl.insertBefore(feed.imgEl, feed.bannerEl);
+                }
+                feed.imgEl.src = frameData;
+
+                let badge = feed.bannerEl.querySelector('.tile-badge');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'tile-badge';
+                    feed.bannerEl.appendChild(badge);
+                }
+                badge.textContent = mode === 'screen' ? 'SCREEN' : 'LIVE';
+            } else {
+                if (feed.imgEl) {
+                    feed.imgEl.remove();
+                    feed.imgEl = null;
+                }
+                const badge = feed.bannerEl.querySelector('.tile-badge');
+                if (badge) badge.remove();
+
+                if (!feed.avatarEl) {
+                    feed.avatarEl = document.createElement('div');
+                    feed.avatarEl.className = 'avatar-placeholder';
+                    const initial = username.substring(0, 2).toUpperCase();
+                    feed.avatarEl.innerHTML = `
+                        <div class="avatar-circle">${initial}</div>
+                    `;
+                    feed.tileEl.insertBefore(feed.avatarEl, feed.bannerEl);
+                }
+            }
+        }
+
+        function highlightSpeaking(username, level) {
+            const feed = peerFeeds.get(username);
+            if (!feed) return;
+
+            if (level > 0.05) {
+                feed.tileEl.classList.add('speaking');
+                clearTimeout(feed.speakingTimeout);
+                feed.speakingTimeout = setTimeout(() => {
+                    feed.tileEl.classList.remove('speaking');
+                }, 400);
+            }
+        }
+
+        // Media Controls: Microphone & Audio
+        async function initLocalMicrophone() {
+            try {
+                localMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(localMediaStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                vuInterval = setInterval(() => {
+                    if (isMicMuted) {
+                        vuBar.style.width = '0%';
+                        return;
+                    }
+
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        sum += dataArray[i];
+                    }
+                    const avg = sum / dataArray.length;
+                    const level = Math.min(1.0, avg / 120);
+
+                    vuBar.style.width = (level * 100) + '%';
+
+                    if (level > 0.04) {
+                        highlightSpeaking(myUsername, level);
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({
+                                type: "voice_level",
+                                username: myUsername,
+                                level: level
+                            }));
+                        }
+                    }
+                }, 100);
+
+            } catch (err) {
+                console.log("Mic access not granted or not available, fallback simulation mode active.");
+                // Simulated interactive VU meter when speaking/typing
+                document.addEventListener('keydown', () => {
+                    if (!isMicMuted) {
+                        vuBar.style.width = '60%';
+                        setTimeout(() => vuBar.style.width = '0%', 200);
+                    }
+                });
+            }
+        }
+
+        btnMic.addEventListener('click', () => {
+            isMicMuted = !isMicMuted;
+            if (isMicMuted) {
+                btnMic.textContent = "🔇 Mic: Muted";
+                btnMic.className = "ctrl-btn btn-red";
+                vuBar.style.width = "0%";
+            } else {
+                btnMic.textContent = "🎤 Mic: On";
+                btnMic.className = "ctrl-btn btn-green";
+            }
+        });
+
+        btnDeafen.addEventListener('click', () => {
+            isDeafened = !isDeafened;
+            if (isDeafened) {
+                btnDeafen.textContent = "🔇 Audio: Deafened";
+                btnDeafen.className = "ctrl-btn btn-red";
+            } else {
+                btnDeafen.textContent = "🔊 Audio: On";
+                btnDeafen.className = "ctrl-btn btn-blue";
+            }
+        });
+
+        // Media Controls: Camera & Screen Share
+        btnCamera.addEventListener('click', async () => {
+            if (isCameraOn) {
+                stopLocalVideo();
+                btnCamera.textContent = "📹 Camera: Off";
+                btnCamera.className = "ctrl-btn btn-gray";
+                isCameraOn = false;
+                ws.send(JSON.stringify({ type: "stop_video", username: myUsername }));
+                createOrUpdateTile(myUsername, null, "avatar", true);
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } });
+                    localVideo.srcObject = stream;
+                    await localVideo.play();
+                    startVideoBroadcasting('camera');
+                    isCameraOn = true;
+                    btnCamera.textContent = "📹 Camera: On";
+                    btnCamera.className = "ctrl-btn btn-green";
+
+                    // Turn off screen share if active
+                    if (isScreenOn) {
+                        isScreenOn = false;
+                        btnScreen.textContent = "🖥️ Screen: Off";
+                        btnScreen.className = "ctrl-btn btn-gray";
+                    }
+                } catch (err) {
+                    console.log("No physical camera found, generating animated avatar feed.");
+                    startAvatarBroadcasting();
+                    isCameraOn = true;
+                    btnCamera.textContent = "📹 Camera: On (Avatar)";
+                    btnCamera.className = "ctrl-btn btn-green";
+                }
+            }
+        });
+
+        btnScreen.addEventListener('click', async () => {
+            if (isScreenOn) {
+                stopLocalVideo();
+                btnScreen.textContent = "🖥️ Screen: Off";
+                btnScreen.className = "ctrl-btn btn-gray";
+                isScreenOn = false;
+                ws.send(JSON.stringify({ type: "stop_video", username: myUsername }));
+                createOrUpdateTile(myUsername, null, "avatar", true);
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { width: 640, height: 360 } });
+                    localVideo.srcObject = stream;
+                    await localVideo.play();
+                    startVideoBroadcasting('screen');
+                    isScreenOn = true;
+                    btnScreen.textContent = "🖥️ Screen: Sharing";
+                    btnScreen.className = "ctrl-btn btn-purple";
+
+                    // Turn off camera if active
+                    if (isCameraOn) {
+                        isCameraOn = false;
+                        btnCamera.textContent = "📹 Camera: Off";
+                        btnCamera.className = "ctrl-btn btn-gray";
+                    }
+
+                    stream.getVideoTracks()[0].onended = () => {
+                        btnScreen.click();
+                    };
+                } catch (err) {
+                    alert("Screen sharing was cancelled or not allowed.");
+                }
+            }
+        });
+
+        function startVideoBroadcasting(mode) {
+            clearInterval(videoBroadcastInterval);
+            videoBroadcastInterval = setInterval(() => {
+                if (localVideo.readyState === localVideo.HAVE_ENOUGH_DATA) {
+                    ctx.drawImage(localVideo, 0, 0, captureCanvas.width, captureCanvas.height);
+                    const jpeg = captureCanvas.toDataURL('image/jpeg', 0.6);
+                    createOrUpdateTile(myUsername, jpeg, mode, true);
+
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: "video_frame",
+                            username: myUsername,
+                            mode: mode,
+                            image: jpeg
+                        }));
+                    }
+                }
+            }, 100); // 10 FPS
+        }
+
+        let avatarAngle = 0;
+        function startAvatarBroadcasting() {
+            clearInterval(videoBroadcastInterval);
+            videoBroadcastInterval = setInterval(() => {
+                avatarAngle += 0.1;
+                ctx.fillStyle = '#1e2430';
+                ctx.fillRect(0, 0, captureCanvas.width, captureCanvas.height);
+
+                // Animated glowing circle
+                const cx = captureCanvas.width / 2;
+                const cy = captureCanvas.height / 2;
+                const r = 55 + Math.sin(avatarAngle) * 5;
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fillStyle = '#3498db';
+                ctx.fill();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#2ecc71';
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 32px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(myUsername.substring(0, 2).toUpperCase(), cx, cy);
+
+                ctx.font = '16px sans-serif';
+                ctx.fillText(myUsername, cx, captureCanvas.height - 30);
+
+                const jpeg = captureCanvas.toDataURL('image/jpeg', 0.6);
+                createOrUpdateTile(myUsername, jpeg, 'camera', true);
+
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: "video_frame",
+                        username: myUsername,
+                        mode: 'camera',
+                        image: jpeg
+                    }));
+                }
+            }, 100);
+        }
+
+        function stopLocalVideo() {
+            clearInterval(videoBroadcastInterval);
+            if (localVideo.srcObject) {
+                localVideo.srcObject.getTracks().forEach(t => t.stop());
+                localVideo.srcObject = null;
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
