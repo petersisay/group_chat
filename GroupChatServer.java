@@ -31,8 +31,8 @@ public class GroupChatServer {
         videoServer = new VideoServer(VideoConfig.VIDEO_PORT);
         videoServer.start();
 
-        // 3. Initialize and launch Web HTTP & WebSocket Server (Port 8080)
-        webChatServer = new WebChatServer(WebChatServer.WEB_PORT);
+        // 3. Initialize and launch Web HTTP & WebSocket Server (Port 8080 or cloud PORT)
+        webChatServer = new WebChatServer(WebChatServer.getWebPort());
         webChatServer.start();
 
         // 4. Start TCP Text Messaging Server (Port 5000)
