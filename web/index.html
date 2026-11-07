@@ -720,6 +720,11 @@
             <button id="enterRoomBtn" class="modal-btn">Join Chat Room</button>
         </div>
     </div>
+    <script>
+        if (localStorage.getItem('chat_studio_username')) {
+            document.getElementById('joinModal').style.display = 'none';
+        }
+    </script>
 
     <!-- Header -->
     <header>
@@ -886,10 +891,11 @@
             usersView.style.display = 'flex';
         });
 
-        // 1. Join Room Handler
-        function handleJoin() {
-            const raw = usernameField.value.trim();
+        // 1. Join Room Handler (Persists session until user explicitly logs out)
+        function handleJoin(persistedName) {
+            const raw = persistedName || usernameField.value.trim();
             myUsername = raw ? raw : "User" + Math.floor(Math.random() * 1000);
+            localStorage.setItem('chat_studio_username', myUsername);
             joinModal.style.display = 'none';
             userBadge.textContent = myUsername;
 
@@ -899,13 +905,16 @@
             updateGridDimensions();
         }
 
-        enterRoomBtn.addEventListener('click', handleJoin);
+        enterRoomBtn.addEventListener('click', () => handleJoin());
         usernameField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') handleJoin();
         });
 
-        // 2. Log Out Handler
+        // 2. Log Out Handler (Only way to end session and clear persistence)
         function handleLogout() {
+            // Remove persisted login
+            localStorage.removeItem('chat_studio_username');
+
             // Stop media streams
             stopMediaStream();
             if (localAudioStream) {
@@ -972,8 +981,18 @@
             };
 
             ws.onclose = () => {
-                connLabel.textContent = "Offline";
+                connLabel.textContent = "Reconnecting...";
                 connLabel.style.color = "var(--accent-red)";
+                // Auto-reconnect if user has not explicitly logged out
+                if (localStorage.getItem('chat_studio_username')) {
+                    setTimeout(() => {
+                        if (localStorage.getItem('chat_studio_username') && (!ws || ws.readyState === WebSocket.CLOSED)) {
+                            connectWebSocket();
+                        }
+                    }, 2500);
+                } else {
+                    connLabel.textContent = "Offline";
+                }
             };
 
             ws.onerror = (err) => {
@@ -1438,6 +1457,12 @@
 
         function escapeHtml(str) {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Initialize: Auto-login if previously logged in (persists across page reloads/sessions until explicit Log Out)
+        const savedUsername = localStorage.getItem('chat_studio_username');
+        if (savedUsername && savedUsername.trim().length > 0) {
+            handleJoin(savedUsername.trim());
         }
     </script>
 </body>
