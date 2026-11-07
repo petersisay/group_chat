@@ -16,6 +16,7 @@ public class GroupChatServer {
 
     private static VoiceServer voiceServer;
     private static VideoServer videoServer;
+    private static WebChatServer webChatServer;
 
     public static void main(String[] args) {
         System.out.println("==================================================");
@@ -30,16 +31,21 @@ public class GroupChatServer {
         videoServer = new VideoServer(VideoConfig.VIDEO_PORT);
         videoServer.start();
 
-        // 3. Start TCP Text Messaging Server (Port 5000)
+        // 3. Initialize and launch Web HTTP & WebSocket Server (Port 8080)
+        webChatServer = new WebChatServer(WebChatServer.WEB_PORT);
+        webChatServer.start();
+
+        // 4. Start TCP Text Messaging Server (Port 5000)
         try (ServerSocket serverSocket = new ServerSocket(TEXT_PORT)) {
             System.out.println("[Chat Server] Listening on TCP port " + TEXT_PORT + "...");
-            System.out.println("[System] Ready for Text, Voice, and Video connections.\n");
+            System.out.println("[System] Ready for Text, Voice, Video, and Browser connections.\n");
 
             // Register shutdown hook for graceful exit
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("\n[Server] Shutting down all services...");
                 if (voiceServer != null) voiceServer.stop();
                 if (videoServer != null) videoServer.stop();
+                if (webChatServer != null) webChatServer.stop();
             }));
 
             while (true) {
