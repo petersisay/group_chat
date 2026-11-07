@@ -128,8 +128,14 @@ public class WebChatServer implements Runnable {
 
     private void serveHttp(String path, OutputStream out) throws IOException {
         File webFile = new File("web", "index.html");
-        byte[] content;
+        if (!webFile.exists()) {
+            webFile = new File("index.html");
+        }
+        if (!webFile.exists()) {
+            webFile = new File(System.getProperty("user.dir"), "web/index.html");
+        }
 
+        byte[] content;
         if (webFile.exists()) {
             try (FileInputStream fis = new FileInputStream(webFile)) {
                 content = fis.readAllBytes();
@@ -141,6 +147,7 @@ public class WebChatServer implements Runnable {
         String headers = "HTTP/1.1 200 OK\r\n"
                 + "Content-Type: text/html; charset=UTF-8\r\n"
                 + "Content-Length: " + content.length + "\r\n"
+                + "Cache-Control: no-cache\r\n"
                 + "Connection: close\r\n\r\n";
 
         out.write(headers.getBytes(StandardCharsets.UTF_8));
