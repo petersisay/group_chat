@@ -6,20 +6,20 @@ An enterprise-grade, multi-modal Java group chat application providing **real-ti
 
 ## 🌟 Key Features
 
-### 1. 🌐 Live Web Browser Interface
-- **Zero-Install Web App**: Runs directly in Google Chrome, Microsoft Edge, Firefox, Safari, or any modern web browser.
+### 1. 🌐 Live Web Browser Interface (Port 8080)
+- **Zero-Install Web App**: Runs directly in Google Chrome, Microsoft Edge, Firefox, Safari, or any modern web browser at `http://localhost:8080`.
 - **Live Video Streaming**: Real-time webcam streaming and screen sharing via `navigator.mediaDevices`.
 - **Live Voice Chat**: Web Audio API integration with live VU meter showing microphone activity.
 - **WebSocket Synchronization**: Instant text messaging, participant video grids, and online member presence.
-- **Session Persistence**: Stays logged in across page reloads and reconnects until the user explicitly clicks **Log Out**.
 
-### 2. 💬 Real-Time Desktop Text Chat
+### 2. 💬 Real-Time Desktop Text Chat (TCP Port 5000)
 - Multithreaded TCP client-server architecture.
 - Instant message delivery and broadcasting to all connected peers.
 - Synchronized online members list with dynamic join/leave notifications.
-- Timestamped message history and built-in commands (`/users`, `/help`).
+- Timestamped message history.
+- Built-in slash commands (`/users`, `/help`).
 
-### 3. 🎙️ Desktop Voice Chat
+### 3. 🎙️ Desktop Voice Chat (UDP Port 5001)
 - Direct microphone audio capture via `javax.sound.sampled.TargetDataLine`.
 - Standardized low-latency PCM audio stream (16 kHz, 16-bit signed mono).
 - Real-time speaker playback via `javax.sound.sampled.SourceDataLine`.
@@ -27,59 +27,13 @@ An enterprise-grade, multi-modal Java group chat application providing **real-ti
 - **Deafen / Speaker Mute** toggle.
 - **Real-Time VU Level Meter**: Visual bar indicating microphone input activity.
 
-### 4. 📹 Desktop Video Chat & Screen Sharing
+### 4. 📹 Desktop Video Chat & Screen Sharing (UDP Port 5002)
 - High-efficiency UDP packetization and chunk reassembly with application-level frame headers.
 - Real-time JPEG frame compression (0.65 quality factor at 15 FPS).
 - **Two Video Modes**:
   - **Live Screen Sharing**: Captures real system screen/windows in real time via `java.awt.Robot`.
   - **Live Camera / Animated Avatar**: Generates interactive video stream with user initials, talking animation reacting to microphone sound levels, and live status badges.
 - **Dynamic Video Grid (`VideoGridPanel`)**: Auto-adjusts layout (1x1, 1x2, 2x2, 2x3, 3x3) to fit all active video feeds seamlessly.
-
----
-
-## 🔒 Security & Environment Configuration
-
-This project is built following security best practices to protect sensitive data, environment configurations, and credentials:
-
-### 1. Zero Hardcoded Secrets
-- **No API keys, credentials, tokens, or private secrets** are embedded in the source code or tracked in the Git repository.
-- All configuration parameters (ports, hosts, origins) are dynamically read from system environment variables with safe fallback defaults.
-
-### 2. Environment Variables (`.env`)
-A template file [`.env.example`](.env.example) is provided. To configure custom settings locally:
-```bash
-# Copy the template to your local environment file
-cp .env.example .env
-```
-Supported environment variables:
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `8080` | Web HTTP & WebSocket server port (auto-set by cloud hosts). |
-| `TEXT_CHAT_PORT` | `5000` | TCP port for desktop text chat. |
-| `VOICE_PORT` | `5001` | UDP port for voice audio streaming. |
-| `VIDEO_PORT` | `5002` | UDP port for video frame broadcasting. |
-| `CHAT_SERVER_HOST` | `localhost` | Host address used by desktop clients to reach the server. |
-| `SERVER_HOST` | `0.0.0.0` | Binding interface for network listening. |
-
-### 3. Repository Exclusion Rules (`.gitignore`)
-The project `.gitignore` strictly excludes:
-- All `.env`, `*.env`, and local environment variable files.
-- Configuration and properties files (`config.properties`, `local.properties`).
-- Private keys, certificates, and keystores (`*.key`, `*.pem`, `*.crt`, `*.p12`, `*.jks`).
-- Cloud service account credentials and tokens (`credentials*.json`, `token*.json`).
-- Compiled `.class` binaries, packages, and crash dumps.
-
-### 4. HTTP Security Headers
-The built-in web server automatically enforces standard web security headers:
-- `X-Content-Type-Options: nosniff` — Prevents MIME-sniffing vulnerabilities.
-- `X-Frame-Options: SAMEORIGIN` — Mitigates clickjacking attacks.
-- `X-XSS-Protection: 1; mode=block` — Activates browser Cross-Site Scripting filters.
-- `Referrer-Policy: strict-origin-when-cross-origin` — Protects referrer privacy.
-- `Cache-Control: no-cache, no-store, must-revalidate` — Prevents sensitive chat caching.
-
-### 5. Production HTTPS / WSS Encryption
-- Modern web browsers require **HTTPS** for camera and microphone access (`getUserMedia`).
-- When deploying to cloud platforms (such as Render, Railway, or Fly.io), SSL/TLS certificates are automatically provisioned, securing all Web and WebSocket traffic with end-to-end HTTPS/WSS encryption.
 
 ---
 
@@ -113,8 +67,8 @@ The built-in web server automatically enforces standard web security headers:
 | File | Description |
 |---|---|
 | `GroupChatServer.java` | Core server orchestrating Web (8080), Text (5000), Voice (5001), and Video (5002). |
-| `WebChatServer.java` | Built-in HTTP server with security headers and RFC 6455 WebSocket engine. |
-| `web/index.html` | Modern responsive Web UI featuring video tiles, screen sharing, audio VU meters, and chat. |
+| `WebChatServer.java` | Built-in HTTP server and RFC 6455 WebSocket engine for browser clients. |
+| `web/index.html` | Modern responsive Web UI featuring video tiles, screen sharing, audio VU meters, and live chat. |
 | `ChatClientGUI.java` | Desktop Swing GUI featuring the video grid, text chat, online member list, and media toolbar. |
 | `AudioConfig.java` | Audio specifications (16 kHz, 16-bit Mono PCM), buffer sizes, and format helpers. |
 | `VoiceServer.java` | UDP relay server broadcasting voice packets to all active participants. |
@@ -123,9 +77,6 @@ The built-in web server automatically enforces standard web security headers:
 | `VideoServer.java` | UDP relay server broadcasting fragmented/chunked video frames. |
 | `VideoClient.java` | Client video engine managing screen sharing, live camera avatars, JPEG compression, and packet assembly. |
 | `VideoGridPanel.java` | Adaptive grid panel rendering letterboxed video tiles with participant labels. |
-| `.env.example` | Safe template for local environment configuration without exposing credentials. |
-| `Dockerfile` | Multi-stage container definition for secure cloud deployment. |
-| `render.yaml` | Infrastructure-as-code specification for 1-click cloud deployment. |
 
 ---
 
@@ -144,6 +95,11 @@ javac *.java
 ```bash
 java GroupChatServer
 ```
+*The server will start listening on:*
+- **Port 8080**: Live Web Browser Video/Voice/Chat (`http://localhost:8080`)
+- **Port 5000**: Desktop Text Chat (TCP)
+- **Port 5001**: Desktop Voice Chat (UDP)
+- **Port 5002**: Desktop Video Chat (UDP)
 
 ### 3. Open in Your Browser
 Navigate to:
