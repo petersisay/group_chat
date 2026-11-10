@@ -16,8 +16,22 @@ import java.util.Date;
  */
 public class ChatClientGUI {
 
-    private final String serverHost = "localhost";
-    private final int serverPort = GroupChatServer.TEXT_PORT;
+    private final String serverHost = resolveServerHost();
+    private final int serverPort = resolveServerPort();
+
+    private static String resolveServerHost() {
+        String env = System.getenv("CHAT_SERVER_HOST");
+        if (env != null && !env.trim().isEmpty()) return env.trim();
+        return System.getProperty("chat.server.host", "localhost");
+    }
+
+    private static int resolveServerPort() {
+        String env = System.getenv("CHAT_SERVER_PORT");
+        if (env != null && !env.trim().isEmpty()) {
+            try { return Integer.parseInt(env.trim()); } catch (NumberFormatException ignored) {}
+        }
+        return GroupChatServer.TEXT_PORT;
+    }
 
     private JFrame frame;
     private JTextPane chatPane;
