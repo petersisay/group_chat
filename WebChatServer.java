@@ -147,7 +147,13 @@ public class WebChatServer implements Runnable {
         String headers = "HTTP/1.1 200 OK\r\n"
                 + "Content-Type: text/html; charset=UTF-8\r\n"
                 + "Content-Length: " + content.length + "\r\n"
-                + "Cache-Control: no-cache\r\n"
+                + "Cache-Control: no-cache, no-store, must-revalidate\r\n"
+                + "Pragma: no-cache\r\n"
+                + "X-Content-Type-Options: nosniff\r\n"
+                + "X-Frame-Options: SAMEORIGIN\r\n"
+                + "X-XSS-Protection: 1; mode=block\r\n"
+                + "Referrer-Policy: strict-origin-when-cross-origin\r\n"
+                + "Server: GroupChatStudio\r\n"
                 + "Connection: close\r\n\r\n";
 
         out.write(headers.getBytes(StandardCharsets.UTF_8));
